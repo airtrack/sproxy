@@ -1,6 +1,7 @@
 [package]
 name = "httpproxy"
 version = "0.1.0"
+authors = ["airtrack <airtrack.sk@gmail.com>"]
 edition = "2024"
 
 [dependencies]
