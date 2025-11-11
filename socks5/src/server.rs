@@ -3,6 +3,7 @@ use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
+use tokio::select;
 
 use crate::proto::*;
 use crate::udp::*;
@@ -57,12 +58,20 @@ impl UdpIncoming {
     }
 
     pub async fn recv_wait(
-        self,
+        mut self,
         buf: &mut UdpSocketBuf,
     ) -> Result<(UdpSocket, UdpSocketHolder, SocketAddr)> {
-        let (from, addr) = self.socket.recv(buf).await?;
-        let socket = UdpSocket::from(self.socket, from);
-        Ok((socket, self.holder, addr))
+        select! {
+            r = self.socket.recv(buf) => {
+                let (from, addr) = r?;
+                let socket = UdpSocket::from(self.socket, from);
+                Ok((socket, self.holder, addr))
+            }
+            r = self.holder.wait() => {
+                r?;
+                unreachable!("socks5: udp holder can not return Ok()");
+            }
+        }
     }
 }
 
