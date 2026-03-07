@@ -18,13 +18,13 @@ impl UdpSocketBuf {
         Self {
             buf: [0; _],
             header_start: 0,
-            header_len: 0,
+            header_len: 22,
             data_len: 0,
         }
     }
 
     pub fn as_mut(&mut self) -> &mut [u8] {
-        &mut self.buf[22..]
+        &mut self.buf[self.header_start + self.header_len..]
     }
 
     pub fn set_len(&mut self, len: usize) {
