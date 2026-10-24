@@ -134,8 +134,34 @@ impl Incoming {
         Ok((self.stream, self.request))
     }
 
-    pub async fn response_404(mut self) -> Result<()> {
-        const HTTP_404: &str = "HTTP/1.1 404 Not Found\r\n\r\n";
-        self.stream.write_all(HTTP_404.as_bytes()).await
+    /// Reject the request with an HTTP `status` and a plain-text `body`, then
+    /// close the connection. A refused request needs an answer, otherwise the
+    /// client sees only a dropped connection.
+    pub async fn response(mut self, status: u16, body: &str) -> Result<()> {
+        let response = format!(
+            "HTTP/1.1 {status} {}\r\nContent-Type: text/plain; charset=utf-8\r\n\
+            Content-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            reason(status),
+            body.len()
+        );
+        self.stream.write_all(response.as_bytes()).await
+    }
+
+    pub async fn response_404(self) -> Result<()> {
+        self.response(404, "").await
+    }
+}
+
+/// The reason phrase for the status codes a proxy sends on its own (RFC 9110
+/// section 15). Any other code still gets a well-formed status line.
+fn reason(status: u16) -> &'static str {
+    match status {
+        400 => "Bad Request",
+        403 => "Forbidden",
+        404 => "Not Found",
+        407 => "Proxy Authentication Required",
+        502 => "Bad Gateway",
+        504 => "Gateway Timeout",
+        _ => "Error",
     }
 }

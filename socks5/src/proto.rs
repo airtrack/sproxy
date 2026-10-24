@@ -14,7 +14,16 @@ pub(crate) const ATYP_IPV6: u8 = 4;
 pub(crate) const ATYP_DOMAIN: u8 = 3;
 
 pub(crate) const REP_SUCCESS: u8 = 0;
-pub(crate) const REP_HOST_UNREACHABLE: u8 = 4;
+
+// Reply codes for a request the server refuses (RFC 1928 section 6).
+pub const REP_GENERAL_FAILURE: u8 = 1;
+pub const REP_NOT_ALLOWED: u8 = 2;
+pub const REP_NETWORK_UNREACHABLE: u8 = 3;
+pub const REP_HOST_UNREACHABLE: u8 = 4;
+pub const REP_CONNECTION_REFUSED: u8 = 5;
+pub const REP_TTL_EXPIRED: u8 = 6;
+pub const REP_COMMAND_NOT_SUPPORTED: u8 = 7;
+pub const REP_ADDRESS_TYPE_NOT_SUPPORTED: u8 = 8;
 
 #[derive(Clone)]
 pub enum Address {

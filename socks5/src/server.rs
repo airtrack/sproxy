@@ -33,14 +33,17 @@ impl TcpIncoming {
     }
 
     pub async fn reply_ok(mut self, bind: SocketAddr) -> Result<TcpStream> {
-        self.acceptor.reply(true, bind).await?;
+        self.acceptor.reply(REP_SUCCESS, bind).await?;
         Ok(self.acceptor.stream)
     }
 
-    pub async fn reply_err(mut self) -> Result<()> {
+    /// Refuse the request with a reply code from RFC 1928 section 6, for
+    /// example [`REP_NOT_ALLOWED`](crate::REP_NOT_ALLOWED) when a rule blocks
+    /// the destination.
+    pub async fn reply_err(mut self, rep: u8) -> Result<()> {
         self.acceptor
             .reply(
-                false,
+                rep,
                 SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0)),
             )
             .await
@@ -108,7 +111,7 @@ impl Acceptor {
     async fn accept_udp_associate(mut self) -> Result<AcceptResult> {
         let _ = Address::read(&mut self.stream).await?;
         let socket = tokio::net::UdpSocket::bind("0.0.0.0:0").await?;
-        self.reply(true, socket.local_addr()?).await?;
+        self.reply(REP_SUCCESS, socket.local_addr()?).await?;
 
         let socket = UdpSocketInner::from(socket);
         let holder = UdpSocketHolder::new(self.stream);
@@ -116,13 +119,7 @@ impl Acceptor {
         Ok(AcceptResult::UdpAssociate(incoming))
     }
 
-    async fn reply(&mut self, success: bool, bind: SocketAddr) -> Result<()> {
-        let rep = if success {
-            REP_SUCCESS
-        } else {
-            REP_HOST_UNREACHABLE
-        };
-
+    async fn reply(&mut self, rep: u8, bind: SocketAddr) -> Result<()> {
         let ack = [VER, rep, 0];
         self.stream.write_all(&ack).await?;
         Address::Ip(bind).write(&mut self.stream).await
